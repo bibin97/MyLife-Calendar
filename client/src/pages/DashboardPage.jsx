@@ -155,6 +155,63 @@ export default function DashboardPage({
     setIsEntryModalOpen(true);
   };
 
+  /* ─────────────────────────── Step 1 -> Step 2 Confirmation ─────────── */
+  const handleSubmitForConfirmation = (data) => {
+    setPendingActivityData(data);
+    setIsEntryModalOpen(false);
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleEditConfirmation = () => {
+    setIsConfirmModalOpen(false);
+    setIsEntryModalOpen(true);
+  };
+
+  const handleCancelConfirmation = () => {
+    setIsConfirmModalOpen(false);
+    setPendingActivityData(null);
+    setEditingActivity(null);
+  };
+
+  const handleConfirmAndSave = async () => {
+    if (isSaving || !pendingActivityData) return;
+    setIsSaving(true);
+
+    try {
+      if (editingActivity) {
+        await activityService.updateActivity(editingActivity._id, {
+          categoryId: pendingActivityData.categoryId,
+          notes: pendingActivityData.notes,
+          crossColor: pendingActivityData.crossColor,
+          noteColor: pendingActivityData.noteColor,
+        });
+        showToast(t('toast.activityUpdated') || 'Activity updated successfully', 'success');
+      } else {
+        await activityService.createActivity({
+          selectedDate: pendingActivityData.selectedDate,
+          categoryId: pendingActivityData.categoryId,
+          notes: pendingActivityData.notes,
+          crossColor: pendingActivityData.crossColor,
+          noteColor: pendingActivityData.noteColor,
+          timezone,
+        });
+        showToast(t('toast.activityCreated') || 'Activity saved successfully', 'success');
+      }
+
+      const monthKey = pendingActivityData.selectedDate.slice(0, 7);
+      await loadMonthMarks(monthKey);
+      refreshList();
+
+      setIsConfirmModalOpen(false);
+      setPendingActivityData(null);
+      setEditingActivity(null);
+    } catch (err) {
+      showToast(err.message || 'Failed to save activity', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   /* ─────────────────────────── Delete flow ────────────────────────────── */
   const handleDeleteActivity = (activity) => {
     if (isOffline) {
