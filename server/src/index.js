@@ -11,7 +11,7 @@ const startServer = async () => {
 
   const server = app.listen(env.PORT, () => {
     console.log(`🚀 MyLife Calendar Server running on http://localhost:${env.PORT} in ${env.NODE_ENV} mode`);
-    console.log(`📦 Connected to Local MongoDB Community Server: ${env.MONGODB_URI}`);
+    console.log('MongoDB connection established successfully.');
   });
 
   const gracefulShutdown = () => {
