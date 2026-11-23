@@ -27,6 +27,11 @@ const categorySchema = new mongoose.Schema(
       ref: 'User',
       default: null,
       index: true
+    },
+    sessionId: {
+      type: String,
+      default: null,
+      index: true
     }
   },
   {
@@ -34,7 +39,8 @@ const categorySchema = new mongoose.Schema(
   }
 );
 
-// Compound index to ensure uniqueness for a given user or default
-categorySchema.index({ key: 1, userId: 1 }, { unique: true });
+// Compound index to ensure uniqueness for a given user, session or default
+categorySchema.index({ key: 1, userId: 1 });
+categorySchema.index({ key: 1, sessionId: 1 });
 
 export const Category = mongoose.model('Category', categorySchema);

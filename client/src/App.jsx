@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import Header from './components/layout/Header.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
-import LoginPage from './pages/LoginPage.jsx';
+import LandingPage from './pages/LandingPage.jsx';
 import SettingsModal from './features/settings/SettingsModal.jsx';
 import Toast from './components/common/Toast.jsx';
 import OfflineBanner from './components/common/OfflineBanner.jsx';
@@ -13,7 +13,7 @@ import { Loader2 } from 'lucide-react';
 import { changeAppLanguage } from './i18n.js';
 
 function AppContent() {
-  const { user, loading, logout, updateProfile } = useAuth();
+  const { user, loading, logout, resetSession, updateProfile } = useAuth();
   const { t, i18n } = useTranslation();
   const { isOffline, wasOffline, clearReconnectedFlag, checkBackendHealth } = useOnlineStatus();
 
@@ -72,7 +72,7 @@ function AppContent() {
 
   if (!user) {
     return (
-      <LoginPage
+      <LandingPage
         language={i18n.language}
         onLanguageChange={handleLanguageChange}
       />
@@ -93,6 +93,7 @@ function AppContent() {
         onLanguageChange={handleLanguageChange}
         user={user}
         onLogout={logout}
+        onResetSession={resetSession}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
       <main className="flex-1 pb-16">

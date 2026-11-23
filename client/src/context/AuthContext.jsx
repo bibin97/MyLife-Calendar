@@ -18,7 +18,6 @@ export const AuthProvider = ({ children }) => {
         const currentUser = await authService.getMe();
         if (isMounted) setUser(currentUser);
       } catch (err) {
-        // Not authenticated or session expired — expected for logged out users
         if (isMounted) setUser(null);
       } finally {
         if (isMounted) setLoading(false);
@@ -31,13 +30,75 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  /**
+   * Phone number entry to start or resume device session
+   */
+  const enterWithPhone = async (phoneNumber, timezone = 'Asia/Kolkata', preferredLanguage = 'en') => {
+    setError(null);
+    try {
+      const data = await authService.startDeviceSession(phoneNumber, timezone, preferredLanguage);
+      setUser(data.user);
+      return data;
+    } catch (err) {
+      setError(err.message || 'Failed to initialize session');
+      throw err;
+    }
+  };
+
+  /**
+   * Leave Calendar / Logout: Clears cookie from browser
+   */
+  const logout = async () => {
+    const currentId = user?._id;
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.warn('Logout error:', err.message);
+    } finally {
+      if (currentId) {
+        offlineStorage.clearUserCache(currentId).catch(() => {});
+      }
+      setUser(null);
+      setDevOtpHint(null);
+    }
+  };
+
+  /**
+   * Reset Session: Revokes session in DB (destroys authorization token)
+   */
+  const resetSession = async () => {
+    const currentId = user?._id;
+    try {
+      await authService.resetSession();
+    } catch (err) {
+      console.warn('Reset error:', err.message);
+    } finally {
+      if (currentId) {
+        offlineStorage.clearUserCache(currentId).catch(() => {});
+      }
+      setUser(null);
+      setDevOtpHint(null);
+    }
+  };
+
+  const updateProfile = async (profileData) => {
+    setError(null);
+    try {
+      const updatedUser = await authService.updateProfile(profileData);
+      setUser(updatedUser);
+      return updatedUser;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    }
+  };
+
+  // Preserved OTP methods
   const requestOtp = async (phoneNumber) => {
     setError(null);
     try {
       const data = await authService.requestOtp(phoneNumber);
-      if (data.devOtp) {
-        setDevOtpHint(data.devOtp);
-      }
+      if (data.devOtp) setDevOtpHint(data.devOtp);
       return data;
     } catch (err) {
       setError(err.message);
@@ -58,42 +119,16 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
-    const currentUserId = user?._id;
-    try {
-      await authService.logout();
-    } catch (err) {
-      console.warn('Logout error:', err.message);
-    } finally {
-      // Clear isolated offline cache for this user upon logout
-      if (currentUserId) {
-        offlineStorage.clearUserCache(currentUserId).catch(() => {});
-      }
-      setUser(null);
-      setDevOtpHint(null);
-    }
-  };
-
-  const updateProfile = async (profileData) => {
-    setError(null);
-    try {
-      const updatedUser = await authService.updateProfile(profileData);
-      setUser(updatedUser);
-      return updatedUser;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    }
-  };
-
   const value = {
     user,
     loading,
     error,
     devOtpHint,
-    requestOtp,
+    enterWithPhone,
     login,
     logout,
+    resetSession,
+    requestOtp,
     updateProfile,
     clearError: () => setError(null)
   };

@@ -7,6 +7,7 @@ export default function Header({
   onLanguageChange,
   user,
   onLogout,
+  onResetSession,
   onOpenSettings
 }) {
   const { t, i18n } = useTranslation();
@@ -89,9 +90,27 @@ export default function Header({
                 <button
                   type="button"
                   onClick={onLogout}
+                  title={currentLang === 'ml' ? 'ബ്രൗസറിൽ നിന്ന് പുറത്തുകടക്കുക' : 'Leave calendar view'}
+                  className="px-2 py-1 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-colors border border-stone-200 cursor-pointer font-malayalam font-semibold"
+                >
+                  {currentLang === 'ml' ? 'പുറത്തു കടക്കുക' : 'Leave'}
+                </button>
+              )}
+              {onResetSession && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const confirmMsg = currentLang === 'ml'
+                      ? 'ശ്രദ്ധിക്കുക: സെഷൻ റീസെറ്റ് ചെയ്താൽ ഈ ബ്രൗസറിലെ കണക്ഷൻ പൂർണ്ണമായി നഷ്ടപ്പെടും. തുടരണോ?'
+                      : 'Warning: Resetting your session will revoke access from this browser. Continue?';
+                    if (window.confirm(confirmMsg)) {
+                      onResetSession();
+                    }
+                  }}
+                  title={currentLang === 'ml' ? 'സെഷൻ പൂർണ്ണമായി റീസെറ്റ് ചെയ്യുക' : 'Permanently revoke session'}
                   className="px-2 py-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200 cursor-pointer font-malayalam font-semibold"
                 >
-                  {t('auth.logout')}
+                  {currentLang === 'ml' ? 'സെഷൻ റീസെറ്റ്' : 'Reset'}
                 </button>
               )}
             </div>

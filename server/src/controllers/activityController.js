@@ -5,12 +5,22 @@ import { isDateAllowed } from '../utils/dateValidator.js';
 
 export const activityController = {
   /**
+   * Helper to build owner query (handles both registered user and device session)
+   */
+  getOwnerFilter(req) {
+    if (req.authType === 'device' || req.user?.isDeviceBound) {
+      return { sessionId: req.user.sessionId || req.deviceSession.sessionId };
+    }
+    return { userId: req.user._id };
+  },
+
+  /**
    * GET /api/activities?month=YYYY-MM OR ?date=YYYY-MM-DD
    */
   async getActivities(req, res, next) {
     try {
       const { month, date } = req.query;
-      const userId = req.user._id;
+      const ownerFilter = activityController.getOwnerFilter(req);
 
       // 1. Month Aggregate Query for Calendar Grid (One Cross Rule)
       if (month) {
@@ -19,7 +29,7 @@ export const activityController = {
         }
 
         const activities = await Activity.find({
-          userId,
+          ...ownerFilter,
           selectedDate: { $regex: `^${month}` }
         }).sort({ createdAt: -1 });
 
@@ -29,7 +39,7 @@ export const activityController = {
           if (!marks[act.selectedDate]) {
             marks[act.selectedDate] = {
               isMarked: true,
-              color: act.crossColor, // Newest activity color (since query is sorted createdAt: -1)
+              color: act.crossColor,
               activityCount: 1,
               latestCreatedAt: act.createdAt
             };
@@ -48,15 +58,15 @@ export const activityController = {
         }
 
         const activities = await Activity.find({
-          userId,
+          ...ownerFilter,
           selectedDate: date
-        }).sort({ createdAt: -1 }); // Newest first
+        }).sort({ createdAt: -1 });
 
         return res.status(200).json({ date, activities });
       }
 
       // If no parameter passed, return recent activities
-      const recent = await Activity.find({ userId })
+      const recent = await Activity.find(ownerFilter)
         .sort({ createdAt: -1 })
         .limit(50);
       res.status(200).json({ activities: recent });
@@ -92,19 +102,28 @@ export const activityController = {
         return res.status(404).json({ error: 'Category not found' });
       }
 
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+
       // Build authoritative activity document
-      const activity = await Activity.create({
-        userId: req.user._id, // Enforce authenticated user ownership
+      const activityData = {
         selectedDate,
         categoryId: category._id,
         categoryNameSnapshot: {
           en: category.nameEn,
           ml: category.nameMl
         },
-        notes: notes || '', // Raw Unicode text preserved unaltered
+        notes: notes || '',
         crossColor: crossColor || '#dc2626',
         noteColor: noteColor || '#1e3a8a'
-      });
+      };
+
+      if (isDevice) {
+        activityData.sessionId = req.user.sessionId || req.deviceSession.sessionId;
+      } else {
+        activityData.userId = req.user._id;
+      }
+
+      const activity = await Activity.create(activityData);
 
       res.status(201).json({
         message: 'Activity recorded successfully',
@@ -132,8 +151,13 @@ export const activityController = {
         return res.status(404).json({ error: 'Activity not found' });
       }
 
-      // User Ownership Check
-      if (activity.userId.toString() !== req.user._id.toString()) {
+      // User / Session Ownership Check
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const owns = isDevice
+        ? activity.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
+        : activity.userId?.toString() === req.user._id?.toString();
+
+      if (!owns) {
         return res.status(403).json({ error: 'You do not have permission to edit this activity.' });
       }
 
@@ -154,7 +178,6 @@ export const activityController = {
       if (parsed.data.crossColor) activity.crossColor = parsed.data.crossColor;
       if (parsed.data.noteColor) activity.noteColor = parsed.data.noteColor;
 
-      // Note: createdAt remains completely untouched
       await activity.save();
 
       res.status(200).json({
@@ -168,7 +191,6 @@ export const activityController = {
 
   /**
    * DELETE /api/activities/:id
-   * Delete an activity and calculate remaining count for cross mark removal
    */
   async deleteActivity(req, res, next) {
     try {
@@ -179,18 +201,23 @@ export const activityController = {
         return res.status(404).json({ error: 'Activity not found' });
       }
 
-      // User Ownership Check
-      if (activity.userId.toString() !== req.user._id.toString()) {
+      // User / Session Ownership Check
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const owns = isDevice
+        ? activity.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
+        : activity.userId?.toString() === req.user._id?.toString();
+
+      if (!owns) {
         return res.status(403).json({ error: 'You do not have permission to delete this activity.' });
       }
 
       const selectedDate = activity.selectedDate;
-      const userId = activity.userId;
+      const ownerFilter = activityController.getOwnerFilter(req);
 
       await Activity.deleteOne({ _id: activity._id });
 
       // Check remaining activities on that date to update or remove cross mark
-      const remaining = await Activity.find({ userId, selectedDate }).sort({ createdAt: -1 });
+      const remaining = await Activity.find({ ...ownerFilter, selectedDate }).sort({ createdAt: -1 });
 
       res.status(200).json({
         message: 'Activity deleted successfully',

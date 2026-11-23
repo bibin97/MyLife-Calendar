@@ -5,27 +5,33 @@ import { protect } from '../middleware/authMiddleware.js';
 
 const router = Router();
 
-// Stricter rate limiting specifically for auth/OTP endpoints (brute-force defense)
-const otpRequestLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Max 10 requests per 15 minutes per IP
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many OTP requests from this IP. Please try again after 15 minutes.' }
-});
-
-const otpVerifyLimiter = rateLimit({
+// Device session rate limiting
+const sessionLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // Max 20 verification attempts per 15 minutes per IP
+  max: 30, // 30 per 15 min
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: 'Too many verification attempts from this IP. Please try again after 15 minutes.' }
+  message: { error: 'Too many requests. Please try again after 15 minutes.' }
 });
 
-router.post('/request-otp', otpRequestLimiter, authController.requestOtp);
-router.post('/verify-otp', otpVerifyLimiter, authController.verifyOtp);
+// Stricter rate limiting for OTP
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please try again after 15 minutes.' }
+});
+
+// 1. Primary Device-Bound Session Endpoints
+router.post('/device-session', sessionLimiter, authController.createOrResumeDeviceSession);
 router.post('/logout', authController.logout);
+router.post('/reset-session', protect, authController.resetSession);
 router.get('/me', protect, authController.getMe);
 router.patch('/profile', protect, authController.updateProfile);
+
+// 2. Preserved Legacy OTP Endpoints (Available for future phone verification)
+router.post('/request-otp', otpLimiter, authController.requestOtp);
+router.post('/verify-otp', otpLimiter, authController.verifyOtp);
 
 export default router;

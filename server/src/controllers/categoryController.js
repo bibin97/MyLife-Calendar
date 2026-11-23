@@ -3,15 +3,30 @@ import { createCategorySchema, updateCategorySchema } from '../validators/catego
 
 export const categoryController = {
   /**
+   * Helper to build owner query
+   */
+  getOwnerFilter(req) {
+    if (req.authType === 'device' || req.user?.isDeviceBound) {
+      return { sessionId: req.user.sessionId || req.deviceSession.sessionId };
+    }
+    return { userId: req.user._id };
+  },
+
+  /**
    * GET /api/categories
-   * Returns default system categories + user's custom categories
+   * Returns default system categories + user/session custom categories
    */
   async getCategories(req, res, next) {
     try {
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const customFilter = isDevice
+        ? { sessionId: req.user.sessionId || req.deviceSession.sessionId }
+        : { userId: req.user._id };
+
       const categories = await Category.find({
         $or: [
-          { isDefault: true, userId: null },
-          { userId: req.user._id }
+          { isDefault: true, userId: null, sessionId: null },
+          customFilter
         ]
       }).sort({ isDefault: -1, createdAt: 1 });
 
@@ -23,7 +38,7 @@ export const categoryController = {
 
   /**
    * POST /api/categories
-   * Creates a user-specific custom category
+   * Creates a user/session-specific custom category
    */
   async createCategory(req, res, next) {
     try {
@@ -35,13 +50,21 @@ export const categoryController = {
       const { nameEn, nameMl } = parsed.data;
       const key = `custom_${nameEn.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`;
 
-      const category = await Category.create({
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const categoryData = {
         key,
         nameEn,
         nameMl,
-        isDefault: false,
-        userId: req.user._id
-      });
+        isDefault: false
+      };
+
+      if (isDevice) {
+        categoryData.sessionId = req.user.sessionId || req.deviceSession.sessionId;
+      } else {
+        categoryData.userId = req.user._id;
+      }
+
+      const category = await Category.create(categoryData);
 
       res.status(201).json({
         message: 'Category created successfully',
@@ -54,7 +77,6 @@ export const categoryController = {
 
   /**
    * PATCH /api/categories/:id
-   * Updates a user's custom category (Default categories are protected)
    */
   async updateCategory(req, res, next) {
     try {
@@ -73,7 +95,12 @@ export const categoryController = {
         return res.status(403).json({ error: 'Default system categories cannot be modified.' });
       }
 
-      if (category.userId.toString() !== req.user._id.toString()) {
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const owns = isDevice
+        ? category.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
+        : category.userId?.toString() === req.user._id?.toString();
+
+      if (!owns) {
         return res.status(403).json({ error: 'You do not have permission to edit this category.' });
       }
 
@@ -93,7 +120,6 @@ export const categoryController = {
 
   /**
    * DELETE /api/categories/:id
-   * Deletes a user's custom category (Default categories cannot be deleted)
    */
   async deleteCategory(req, res, next) {
     try {
@@ -108,7 +134,12 @@ export const categoryController = {
         return res.status(403).json({ error: 'Default system categories cannot be deleted.' });
       }
 
-      if (category.userId.toString() !== req.user._id.toString()) {
+      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const owns = isDevice
+        ? category.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
+        : category.userId?.toString() === req.user._id?.toString();
+
+      if (!owns) {
         return res.status(403).json({ error: 'You do not have permission to delete this category.' });
       }
 

