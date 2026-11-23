@@ -5,31 +5,21 @@ import { otpService } from '../services/otpService.js';
 import { sessionService } from '../services/sessionService.js';
 import { requestOtpSchema, verifyOtpSchema, updateProfileSchema } from '../validators/authValidator.js';
 import { env } from '../config/env.js';
+import { getAuthCookieOptions } from '../utils/cookieOptions.js';
 
 export const authController = {
   /**
    * Helper to set cookie with standard options
    */
   setCookie(res, name, token, maxAge = 60 * 24 * 60 * 60 * 1000) {
-    const isProd = env.NODE_ENV === 'production';
-    res.cookie(name, token, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax', // 'none' + secure allows cross-site frontend/backend (Vercel + Render)
-      maxAge
-    });
+    res.cookie(name, token, getAuthCookieOptions(maxAge));
   },
 
   /**
    * Helper to clear cookie
    */
   clearCookie(res, name) {
-    const isProd = env.NODE_ENV === 'production';
-    res.clearCookie(name, {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax'
-    });
+    res.clearCookie(name, getAuthCookieOptions());
   },
 
   /**

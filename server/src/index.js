@@ -1,17 +1,18 @@
 import { createApp } from './app.js';
 import { connectDB } from './config/db.js';
 import { seedDefaultCategories } from './services/seedService.js';
-import { env } from './config/env.js';
+import { assertProductionEnv, env } from './config/env.js';
+import { redactSecrets } from './utils/logRedact.js';
 
 const startServer = async () => {
+  assertProductionEnv();
   await connectDB();
   await seedDefaultCategories();
 
   const app = createApp();
 
   const server = app.listen(env.PORT, () => {
-    console.log(`🚀 MyLife Calendar Server running on http://localhost:${env.PORT} in ${env.NODE_ENV} mode`);
-    console.log('MongoDB connection established successfully.');
+    console.log(`MyLife Calendar Server listening on port ${env.PORT} (${env.NODE_ENV})`);
   });
 
   const gracefulShutdown = () => {
@@ -27,6 +28,6 @@ const startServer = async () => {
 };
 
 startServer().catch((err) => {
-  console.error('Failed to start server:', err);
+  console.error('Failed to start server:', redactSecrets(err.message || err));
   process.exit(1);
 });

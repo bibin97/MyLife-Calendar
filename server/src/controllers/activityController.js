@@ -1,18 +1,10 @@
 import { Activity } from '../models/Activity.js';
-import { Category } from '../models/Category.js';
 import { createActivitySchema, updateActivitySchema } from '../validators/activityValidator.js';
 import { isDateAllowed } from '../utils/dateValidator.js';
+import { documentOwnedByRequester, findUsableCategory, getOwnerFilter, isDeviceAuth } from '../utils/ownerScope.js';
 
 export const activityController = {
-  /**
-   * Helper to build owner query (handles both registered user and device session)
-   */
-  getOwnerFilter(req) {
-    if (req.authType === 'device' || req.user?.isDeviceBound) {
-      return { sessionId: req.user.sessionId || req.deviceSession.sessionId };
-    }
-    return { userId: req.user._id };
-  },
+  getOwnerFilter,
 
   /**
    * GET /api/activities?month=YYYY-MM OR ?date=YYYY-MM-DD
@@ -96,13 +88,12 @@ export const activityController = {
         });
       }
 
-      // Resolve Category and take name snapshot
-      const category = await Category.findById(categoryId);
+      const category = await findUsableCategory(categoryId, req);
       if (!category) {
         return res.status(404).json({ error: 'Category not found' });
       }
 
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const isDevice = isDeviceAuth(req);
 
       // Build authoritative activity document
       const activityData = {
@@ -146,24 +137,23 @@ export const activityController = {
         return res.status(400).json({ error: parsed.error.errors[0].message });
       }
 
-      const activity = await Activity.findById(id);
+      const ownerFilter = getOwnerFilter(req);
+      const activity = await Activity.findOne({ _id: id, ...ownerFilter });
       if (!activity) {
-        return res.status(404).json({ error: 'Activity not found' });
+        const exists = await Activity.findById(id);
+        if (!exists) {
+          return res.status(404).json({ error: 'Activity not found' });
+        }
+        return res.status(403).json({ error: 'You do not have permission to edit this activity.' });
       }
 
-      // User / Session Ownership Check
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
-      const owns = isDevice
-        ? activity.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
-        : activity.userId?.toString() === req.user._id?.toString();
-
-      if (!owns) {
+      if (!documentOwnedByRequester(activity, req)) {
         return res.status(403).json({ error: 'You do not have permission to edit this activity.' });
       }
 
       // If category updated, refresh snapshot
       if (parsed.data.categoryId && parsed.data.categoryId !== activity.categoryId.toString()) {
-        const category = await Category.findById(parsed.data.categoryId);
+        const category = await findUsableCategory(parsed.data.categoryId, req);
         if (!category) {
           return res.status(404).json({ error: 'New category not found' });
         }
@@ -195,26 +185,23 @@ export const activityController = {
   async deleteActivity(req, res, next) {
     try {
       const { id } = req.params;
-      const activity = await Activity.findById(id);
+      const ownerFilter = getOwnerFilter(req);
+      const activity = await Activity.findOne({ _id: id, ...ownerFilter });
 
       if (!activity) {
-        return res.status(404).json({ error: 'Activity not found' });
-      }
-
-      // User / Session Ownership Check
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
-      const owns = isDevice
-        ? activity.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
-        : activity.userId?.toString() === req.user._id?.toString();
-
-      if (!owns) {
+        const exists = await Activity.findById(id);
+        if (!exists) {
+          return res.status(404).json({ error: 'Activity not found' });
+        }
         return res.status(403).json({ error: 'You do not have permission to delete this activity.' });
       }
 
       const selectedDate = activity.selectedDate;
-      const ownerFilter = activityController.getOwnerFilter(req);
 
-      await Activity.deleteOne({ _id: activity._id });
+      const deleted = await Activity.deleteOne({ _id: activity._id, ...ownerFilter });
+      if (deleted.deletedCount !== 1) {
+        return res.status(403).json({ error: 'You do not have permission to delete this activity.' });
+      }
 
       // Check remaining activities on that date to update or remove cross mark
       const remaining = await Activity.find({ ...ownerFilter, selectedDate }).sort({ createdAt: -1 });

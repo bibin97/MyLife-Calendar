@@ -98,20 +98,21 @@ export const otpService = {
   /**
    * SMS Provider Dispatcher (Configurable)
    */
-  async sendSms(phoneNumber, otpCode) {
-    const message = `Your MyLife Calendar login code is ${otpCode}. Valid for ${env.OTP_EXPIRY_MINUTES} minutes.`;
+  async sendSms(phoneNumber, _otpCode) {
+    if (env.NODE_ENV === 'production') {
+      return;
+    }
 
     switch (env.SMS_PROVIDER) {
       case 'twilio':
-        // Twilio integration can be plugged in here if credentials are configured
-        console.log(`[SMS-TWILIO] Sending SMS to ${phoneNumber}: "${message}"`);
+        console.log('[SMS-TWILIO] OTP dispatch invoked');
         break;
       case 'fast2sms':
-        console.log(`[SMS-FAST2SMS] Sending SMS to ${phoneNumber}: "${message}"`);
+        console.log('[SMS-FAST2SMS] OTP dispatch invoked');
         break;
       case 'mock':
       default:
-        console.log(`📱 [SMS-DEV/MOCK] Sent to ${phoneNumber} => OTP: ${otpCode}`);
+        console.log(`[SMS-DEV/MOCK] OTP generated for testing (${phoneNumber})`);
         break;
     }
   }

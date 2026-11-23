@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
 import { sessionService } from '../services/sessionService.js';
 import { env } from '../config/env.js';
+import { getAuthCookieOptions } from '../utils/cookieOptions.js';
 
 /**
  * Unified auth protection:
@@ -28,7 +29,7 @@ export const protect = async (req, res, next) => {
           }
         }
       } catch {
-        res.clearCookie('token');
+        res.clearCookie('token', getAuthCookieOptions());
       }
     }
 
@@ -52,7 +53,7 @@ export const protect = async (req, res, next) => {
         };
         return next();
       } else {
-        res.clearCookie('device_session');
+        res.clearCookie('device_session', getAuthCookieOptions());
       }
     }
 

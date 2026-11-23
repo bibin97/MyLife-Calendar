@@ -1,16 +1,9 @@
 import { Category } from '../models/Category.js';
 import { createCategorySchema, updateCategorySchema } from '../validators/categoryValidator.js';
+import { documentOwnedByRequester, getOwnerFilter, isDeviceAuth } from '../utils/ownerScope.js';
 
 export const categoryController = {
-  /**
-   * Helper to build owner query
-   */
-  getOwnerFilter(req) {
-    if (req.authType === 'device' || req.user?.isDeviceBound) {
-      return { sessionId: req.user.sessionId || req.deviceSession.sessionId };
-    }
-    return { userId: req.user._id };
-  },
+  getOwnerFilter,
 
   /**
    * GET /api/categories
@@ -18,10 +11,7 @@ export const categoryController = {
    */
   async getCategories(req, res, next) {
     try {
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
-      const customFilter = isDevice
-        ? { sessionId: req.user.sessionId || req.deviceSession.sessionId }
-        : { userId: req.user._id };
+      const customFilter = getOwnerFilter(req);
 
       const categories = await Category.find({
         $or: [
@@ -50,7 +40,7 @@ export const categoryController = {
       const { nameEn, nameMl } = parsed.data;
       const key = `custom_${nameEn.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${Date.now().toString(36)}`;
 
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
+      const isDevice = isDeviceAuth(req);
       const categoryData = {
         key,
         nameEn,
@@ -86,21 +76,20 @@ export const categoryController = {
         return res.status(400).json({ error: parsed.error.errors[0].message });
       }
 
-      const category = await Category.findById(id);
+      const ownerFilter = getOwnerFilter(req);
+      const category = await Category.findOne({ _id: id, ...ownerFilter, isDefault: false });
       if (!category) {
-        return res.status(404).json({ error: 'Category not found' });
+        const existing = await Category.findById(id);
+        if (!existing) {
+          return res.status(404).json({ error: 'Category not found' });
+        }
+        if (existing.isDefault) {
+          return res.status(403).json({ error: 'Default system categories cannot be modified.' });
+        }
+        return res.status(403).json({ error: 'You do not have permission to edit this category.' });
       }
 
-      if (category.isDefault) {
-        return res.status(403).json({ error: 'Default system categories cannot be modified.' });
-      }
-
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
-      const owns = isDevice
-        ? category.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
-        : category.userId?.toString() === req.user._id?.toString();
-
-      if (!owns) {
+      if (!documentOwnedByRequester(category, req)) {
         return res.status(403).json({ error: 'You do not have permission to edit this category.' });
       }
 
@@ -124,26 +113,24 @@ export const categoryController = {
   async deleteCategory(req, res, next) {
     try {
       const { id } = req.params;
-      const category = await Category.findById(id);
+      const ownerFilter = getOwnerFilter(req);
+      const category = await Category.findOne({ _id: id, ...ownerFilter, isDefault: false });
 
       if (!category) {
-        return res.status(404).json({ error: 'Category not found' });
-      }
-
-      if (category.isDefault) {
-        return res.status(403).json({ error: 'Default system categories cannot be deleted.' });
-      }
-
-      const isDevice = req.authType === 'device' || req.user?.isDeviceBound;
-      const owns = isDevice
-        ? category.sessionId === (req.user.sessionId || req.deviceSession.sessionId)
-        : category.userId?.toString() === req.user._id?.toString();
-
-      if (!owns) {
+        const existing = await Category.findById(id);
+        if (!existing) {
+          return res.status(404).json({ error: 'Category not found' });
+        }
+        if (existing.isDefault) {
+          return res.status(403).json({ error: 'Default system categories cannot be deleted.' });
+        }
         return res.status(403).json({ error: 'You do not have permission to delete this category.' });
       }
 
-      await Category.deleteOne({ _id: category._id });
+      const deleted = await Category.deleteOne({ _id: category._id, ...ownerFilter, isDefault: false });
+      if (deleted.deletedCount !== 1) {
+        return res.status(403).json({ error: 'You do not have permission to delete this category.' });
+      }
 
       res.status(200).json({
         message: 'Custom category deleted successfully. Existing activities retain their category snapshot.'
