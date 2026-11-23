@@ -33,3 +33,11 @@ build/
 *.njsproj
 *.sln
 *.sw?
+
+
+# Additional environment files
+.env.*
+!.env.example
+
+# Test coverage
+coverage/
