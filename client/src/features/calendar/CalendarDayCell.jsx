@@ -35,22 +35,22 @@ export default function CalendarDayCell({
       onClick={handleClick}
       onKeyDown={handleKeyDown}
       className={`
-        relative aspect-square sm:aspect-[4/3] md:aspect-[5/4] p-1.5 sm:p-2.5 rounded-xl border transition-all duration-200 select-none flex flex-col justify-between overflow-hidden
+        relative aspect-square sm:aspect-[4/3] md:aspect-[5/4] p-1.5 sm:p-2.5 rounded-2xl border transition-all duration-200 select-none flex flex-col justify-between overflow-hidden
         ${isFuture
-          ? 'bg-stone-100/70 border-stone-200/60 opacity-40 cursor-not-allowed text-stone-400'
-          : 'bg-white border-stone-200/90 hover:border-teal-400 hover:shadow-md cursor-pointer text-stone-800 active:scale-[0.98]'
+          ? 'bg-stone-100/50 border-stone-200/50 opacity-40 cursor-not-allowed text-stone-400'
+          : 'bg-white/95 border-stone-200/90 hover:border-teal-500 hover:shadow-lg hover:shadow-teal-900/5 hover:-translate-y-0.5 cursor-pointer text-stone-800 active:scale-[0.97]'
         }
-        ${!isCurrentMonth && !isFuture ? 'opacity-45 bg-stone-50/50' : ''}
-        ${isSelected && !isFuture ? 'ring-2 ring-teal-600 border-teal-600 shadow-md bg-teal-50/30' : ''}
+        ${!isCurrentMonth && !isFuture ? 'opacity-40 bg-stone-50/40' : ''}
+        ${isSelected && !isFuture ? 'ring-3 ring-teal-600/30 border-teal-600 shadow-lg bg-teal-50/40' : ''}
       `}
     >
       {/* Top row: Day Number & Today indicator */}
       <div className="flex items-center justify-between w-full z-10">
         <span
           className={`
-            text-sm sm:text-base md:text-lg font-bold tracking-tight inline-flex items-center justify-center rounded-lg px-1.5 py-0.5 transition-colors
+            text-sm sm:text-base md:text-lg font-extrabold tracking-tight inline-flex items-center justify-center rounded-xl px-1.5 py-0.5 transition-all
             ${isToday
-              ? 'bg-teal-700 text-white font-extrabold shadow-sm'
+              ? 'bg-gradient-to-r from-teal-700 to-emerald-700 text-white font-black shadow-md ring-2 ring-teal-200'
               : isFuture
                 ? 'text-stone-400'
                 : 'text-stone-800'
@@ -61,7 +61,7 @@ export default function CalendarDayCell({
         </span>
 
         {isToday && (
-          <span className="hidden sm:inline-block text-[10px] font-semibold uppercase tracking-wider text-teal-700 bg-teal-100/80 px-1.5 py-0.5 rounded-full font-malayalam">
+          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-100/90 border border-teal-200/80 px-2 py-0.5 rounded-full font-malayalam shadow-2xs">
             {t('calendar.markedBadge')}
           </span>
         )}
@@ -73,10 +73,10 @@ export default function CalendarDayCell({
       )}
 
       {/* Bottom status indicator / count dot */}
-      <div className="h-2 flex items-center justify-end z-10">
+      <div className="h-3 flex items-center justify-end z-10">
         {markData?.activityCount > 1 && (
-          <span className="text-[10px] font-bold text-stone-600 bg-stone-100/90 px-1 rounded-sm border border-stone-200 shadow-2xs">
-            {markData.activityCount}
+          <span className="text-[10px] font-extrabold text-teal-900 bg-teal-100/90 px-1.5 py-0.2 rounded-md border border-teal-200 shadow-2xs">
+            +{markData.activityCount - 1}
           </span>
         )}
       </div>

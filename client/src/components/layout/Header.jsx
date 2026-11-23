@@ -21,18 +21,18 @@ export default function Header({
   };
 
   return (
-    <header className="sticky top-0 z-30 bg-white/85 backdrop-blur-md border-b border-stone-200/80 px-4 sm:px-8 py-3.5 shadow-2xs font-sans">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-stone-200/80 px-4 sm:px-8 py-3 shadow-xs font-sans transition-all">
       <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
         {/* App Logo & Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-teal-700 text-white flex items-center justify-center shadow-sm">
-            <Calendar className="w-6 h-6" />
+        <div className="flex items-center gap-3 group cursor-default">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-800 to-teal-600 text-white flex items-center justify-center shadow-md shadow-teal-900/20 ring-2 ring-teal-100 group-hover:scale-105 transition-transform duration-200">
+            <Calendar className="w-5 h-5 drop-shadow-xs" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-extrabold text-stone-900 tracking-tight">
-              MyLife <span className="text-teal-700">Calendar</span>
+            <h1 className="text-base sm:text-xl font-extrabold text-stone-900 tracking-tight leading-tight">
+              MyLife <span className="bg-gradient-to-r from-teal-700 to-emerald-600 bg-clip-text text-transparent">Calendar</span>
             </h1>
-            <p className="text-[11px] text-stone-500 font-medium font-malayalam">
+            <p className="text-[10px] sm:text-[11px] text-stone-500 font-semibold font-malayalam tracking-wide">
               {t('app.tagline')}
             </p>
           </div>
@@ -41,14 +41,14 @@ export default function Header({
         {/* Right side controls: Language switcher, Settings & User info */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Language Switcher Buttons (English | മലയാളം) */}
-          <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold shadow-2xs">
+          <div className="flex items-center bg-stone-100/90 backdrop-blur-md p-1 rounded-2xl border border-stone-200 text-xs font-semibold shadow-inner">
             <button
               type="button"
               onClick={() => handleSwitch('en')}
               className={`
-                px-2.5 py-1 rounded-lg transition-all cursor-pointer
+                px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all duration-200 cursor-pointer
                 ${currentLang === 'en'
-                  ? 'bg-white text-teal-800 shadow-xs font-bold'
+                  ? 'bg-white text-teal-900 shadow-sm font-bold scale-[1.02]'
                   : 'text-stone-600 hover:text-stone-900'
                 }
               `}
@@ -59,9 +59,9 @@ export default function Header({
               type="button"
               onClick={() => handleSwitch('ml')}
               className={`
-                px-2.5 py-1 rounded-lg transition-all font-malayalam cursor-pointer
+                px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all duration-200 font-malayalam cursor-pointer
                 ${currentLang === 'ml'
-                  ? 'bg-white text-teal-800 shadow-xs font-bold'
+                  ? 'bg-white text-teal-900 shadow-sm font-bold scale-[1.02]'
                   : 'text-stone-600 hover:text-stone-900'
                 }
               `}
@@ -76,7 +76,7 @@ export default function Header({
               type="button"
               onClick={onOpenSettings}
               title={t('settings.openSettings')}
-              className="p-2 rounded-xl text-stone-600 hover:text-teal-800 hover:bg-stone-100 border border-stone-200/80 transition-colors cursor-pointer shadow-2xs"
+              className="p-2 sm:p-2.5 rounded-2xl text-stone-600 hover:text-teal-800 hover:bg-teal-50/80 border border-stone-200/80 hover:border-teal-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
             >
               <Settings className="w-4 h-4" />
             </button>

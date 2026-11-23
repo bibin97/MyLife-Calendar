@@ -56,11 +56,11 @@ export default function ActivityCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.25, delay: index * 0.06 }}
-      className="bg-white/98 rounded-2xl border border-stone-200/80 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
+      className="glass-card rounded-2xl border border-stone-200/90 shadow-sm hover:shadow-lg hover:shadow-teal-900/5 transition-all duration-200 overflow-hidden group"
     >
       {/* Top colour bar matching cross colour */}
       <div
-        className="h-1 w-full"
+        className="h-1.5 w-full transition-all group-hover:h-2"
         style={{ backgroundColor: crossColor }}
       />
 
@@ -68,8 +68,10 @@ export default function ActivityCard({
         {/* Header row: category + action buttons */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 min-w-0">
-            <Tag className="w-3.5 h-3.5 text-teal-600 shrink-0" />
-            <span className="text-sm font-bold text-teal-800 truncate">
+            <div className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200/80 flex items-center justify-center shrink-0">
+              <Tag className="w-3.5 h-3.5 text-teal-700" />
+            </div>
+            <span className="text-sm sm:text-base font-extrabold text-stone-900 truncate tracking-tight">
               {categoryName}
             </span>
           </div>
