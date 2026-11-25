@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://compression-allied-transportation-thoroughly.trycloudflare.com/api/:path*"
+      "destination": "https://driven-close-journal-mia.trycloudflare.com/api/:path*"
     }
   ]
 }
