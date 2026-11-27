@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://my-life-calendar-alpha.vercel.app/sitemap.xml
